@@ -46,7 +46,25 @@ type RGWClient struct {
 	client    *s3.S3
 }
 
-func GetS3Client(user RGWUser, endpoint, region string) (*s3.S3, error) {
+func NewRGWClient(userName, accessKey, secret, endpoint, zonegroup string) (*RGWClient, error) {
+	user := RGWUser{
+		name:      userName,
+		accessKey: accessKey,
+		secret:    secret,
+	}
+	s3, err := getS3Client(user, endpoint, zonegroup)
+	if err != nil {
+		return nil, err
+	}
+	return &RGWClient{
+		endpoint:  endpoint,
+		zonegroup: zonegroup,
+		user:      user,
+		client:    s3,
+	}, nil
+}
+
+func getS3Client(user RGWUser, endpoint, region string) (*s3.S3, error) {
 	glog.V(5).Infof("Creating s3 client based on: \"%s\" on endpoint %s (%s)", user.accessKey, endpoint, region)
 
 	addr := endpoint
