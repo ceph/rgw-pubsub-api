@@ -1,7 +1,10 @@
 # Run RGW Pubsub go client
 
 ## Build
+
+```bash
 go build rgw_pubsub_cli.go
+```
 
 ## Setup test environment
 
