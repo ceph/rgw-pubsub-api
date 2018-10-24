@@ -109,7 +109,7 @@ func (rgw *RGWClient) rgwDoRequestRaw(method, req_url string) ([]byte, error) {
 		Transport: http.DefaultTransport,
 	}
 
-	glog.V(5).Infof("sending http request: %s", req_url)
+	glog.V(5).Infof("sending http request: %s %s", method, req_url)
 
 	req, err := http.NewRequest(method, req_url, bytes.NewReader(nil))
 	if err != nil {

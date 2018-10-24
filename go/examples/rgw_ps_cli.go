@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"flag"
 	"os"
 
 	"github.com/golang/glog"
@@ -28,35 +29,81 @@ const (
 	envAccessId  = "S3_ACCESS_KEY_ID"
 	envAccessKey = "S3_SECRET_ACCESS_KEY"
 	envEndpoint  = "S3_HOSTNAME"
-	userName     = "rgwtest"
-	zonegroup    = ""
-	topicName    = "foobar"
+)
+
+func init() {
+	flag.Set("logtostderr", "true")
+}
+
+var (
+	userName         = flag.String("username", "rgwtest", "rgw user name")
+	zonegroup        = flag.String("zonegroup", "", "rgw zone group")
+	topicName        = flag.String("topicname", "mytopic", "pubsub topic name")
+	subName          = flag.String("subname", "mysub", "pubsub subscription name")
+	notificationName = flag.String("notifname", "mynotification", "pubsub notification name")
+	bucketName       = flag.String("bucketname", "buck", "existing rgw bucket name")
+	cleanup          = flag.Bool("cleanup", false, "clean up after run")
 )
 
 func main() {
+	flag.Parse()
+
+	glog.Infof("user name %s, topic %s, sub %s, notification %s bucket %s to-clean-up %v",
+		*userName, *topicName, *subName, *notificationName, *bucketName, *cleanup)
+
 	accessId := os.Getenv(envAccessId)
 	accessKey := os.Getenv(envAccessKey)
 	endpoint := os.Getenv(envEndpoint)
 	if len(accessId) == 0 || len(accessKey) == 0 || len(endpoint) == 0 {
 		glog.Fatalf("env %s, %s, or %s not set", envAccessId, envAccessKey, envEndpoint)
 	}
-	rgwClient, err := rgwpubsub.NewRGWClient(userName, accessId, accessKey, endpoint, zonegroup)
+	rgwClient, err := rgwpubsub.NewRGWClient(*userName, accessId, accessKey, endpoint, *zonegroup)
 	if err != nil {
 		glog.Fatalf("failed to create rgw pubsub client: %v", err)
 	}
 	glog.Infof("rgw client %+v", *rgwClient)
 	// topic: create, get, delete
-	err = rgwClient.RGWCreateTopic(topicName)
+	err = rgwClient.RGWCreateTopic(*topicName)
 	if err != nil {
 		glog.Fatalf("failed to create topic: %v", err)
 	}
-	sub, err := rgwClient.RGWGetSubscriptionWithTopic(topicName)
+	// notification: associate a bucket with the topic
+	err = rgwClient.RGWCreateNotification(*bucketName, *topicName)
+	if err != nil {
+		glog.Fatalf("failed to create notification: %v", err)
+	}
+	notif, err := rgwClient.RGWGetNotifications(*bucketName)
+	if err != nil {
+		glog.Fatalf("failed to get notifications: %v", err)
+	}
+	glog.Infof("notifications: %+v", notif)
+	// create subscription
+	err = rgwClient.RGWCreateSubscription(*subName, *topicName, endpoint)
+	if err != nil {
+		glog.Fatalf("failed to create subscription: %v", err)
+	}
+	sub, err := rgwClient.RGWGetSubscriptionWithTopic(*topicName)
 	if err != nil {
 		glog.Fatalf("failed to get sub from topic: %v", err)
 	}
-	glog.Infof("sub %+v", sub)
-	err = rgwClient.RGWDeleteTopic(topicName)
+	glog.Infof("subscription: %+v", sub)
+	events, err := rgwClient.RGWGetEvents(*subName, 0, "")
 	if err != nil {
-		glog.Fatalf("failed to delete topic: %v", err)
+		glog.Fatalf("failed to get events: %v", err)
+	}
+	glog.Infof("events: %+v", events)
+	if *cleanup {
+		err = rgwClient.RGWDeleteSubscription(*subName)
+		if err != nil {
+			glog.Fatalf("failed to delete subscription: %v", err)
+		}
+		err = rgwClient.RGWDeleteNotification(*bucketName, *topicName)
+		if err != nil {
+			glog.Fatalf("failed to delete notification: %v", err)
+		}
+		err = rgwClient.RGWDeleteTopic(*topicName)
+		if err != nil {
+			glog.Fatalf("failed to delete topic: %v", err)
+		}
 	}
 }
