@@ -43,13 +43,14 @@ var (
 	notificationName = flag.String("notifname", "mynotification", "pubsub notification name")
 	bucketName       = flag.String("bucketname", "buck", "existing rgw bucket name")
 	cleanup          = flag.Bool("cleanup", false, "clean up after run")
+	readonly         = flag.Bool("readonly", false, "read only")
 )
 
 func main() {
 	flag.Parse()
 
-	glog.Infof("user name %s, topic %s, sub %s, notification %s bucket %s to-clean-up %v",
-		*userName, *topicName, *subName, *notificationName, *bucketName, *cleanup)
+	glog.Infof("user name %s, topic %s, sub %s, notification %s bucket %s to-clean-up %v readonly %v",
+		*userName, *topicName, *subName, *notificationName, *bucketName, *cleanup, *readonly)
 
 	accessId := os.Getenv(envAccessId)
 	accessKey := os.Getenv(envAccessKey)
@@ -61,26 +62,30 @@ func main() {
 	if err != nil {
 		glog.Fatalf("failed to create rgw pubsub client: %v", err)
 	}
-	glog.Infof("rgw client %+v", *rgwClient)
-	// topic: create, get, delete
-	err = rgwClient.RGWCreateTopic(*topicName)
-	if err != nil {
-		glog.Fatalf("failed to create topic: %v", err)
-	}
-	// notification: associate a bucket with the topic
-	err = rgwClient.RGWCreateNotification(*bucketName, *topicName)
-	if err != nil {
-		glog.Fatalf("failed to create notification: %v", err)
+	if !*readonly {
+		glog.Infof("rgw client %+v", *rgwClient)
+		// topic: create, get, delete
+		err = rgwClient.RGWCreateTopic(*topicName)
+		if err != nil {
+			glog.Fatalf("failed to create topic: %v", err)
+		}
+		// notification: associate a bucket with the topic
+		err = rgwClient.RGWCreateNotification(*bucketName, *topicName)
+		if err != nil {
+			glog.Fatalf("failed to create notification: %v", err)
+		}
 	}
 	notif, err := rgwClient.RGWGetNotifications(*bucketName)
 	if err != nil {
 		glog.Fatalf("failed to get notifications: %v", err)
 	}
 	glog.Infof("notifications: %+v", notif)
-	// create subscription
-	err = rgwClient.RGWCreateSubscription(*subName, *topicName, endpoint)
-	if err != nil {
-		glog.Fatalf("failed to create subscription: %v", err)
+	if !*readonly {
+		// create subscription
+		err = rgwClient.RGWCreateSubscription(*subName, *topicName, endpoint)
+		if err != nil {
+			glog.Fatalf("failed to create subscription: %v", err)
+		}
 	}
 	sub, err := rgwClient.RGWGetSubscriptionWithTopic(*topicName)
 	if err != nil {
@@ -91,7 +96,7 @@ func main() {
 	if err != nil {
 		glog.Fatalf("failed to get events: %v", err)
 	}
-	glog.Infof("events: %+v", events)
+	glog.Infof("events: %+v", *events)
 	if *cleanup {
 		err = rgwClient.RGWDeleteSubscription(*subName)
 		if err != nil {
