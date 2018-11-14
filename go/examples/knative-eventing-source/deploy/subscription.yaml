@@ -1,0 +1,29 @@
+apiVersion: eventing.knative.dev/v1alpha1
+kind: Subscription
+metadata:
+  name: rgw-ps-subscription
+  namespace: rgwpubsub
+spec:
+  channel:
+    apiVersion: eventing.knative.dev/v1alpha1
+    kind: Channel
+    name: rgw-ps-channel
+  subscriber:
+    ref:
+      apiVersion: serving.knative.dev/v1alpha1
+      kind: Service
+      name: rgwpubsub-svc
+---
+apiVersion: serving.knative.dev/v1alpha1
+kind: Service
+metadata:
+  name: rgwpubsub-svc
+  namespace: rgwpubsub
+spec:
+  runLatest:
+    configuration:
+      revisionTemplate:
+        spec:
+          container:
+            image: github.com/ceph/rgw-pubsub-api/go/examples/knative-eventing-source/receiver
+ 
