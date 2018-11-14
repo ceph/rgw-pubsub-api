@@ -1,0 +1,13 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: ServiceEntry
+metadata:
+  name: rgwpubsub-source
+  namespace: rgwpubsub
+spec:
+  hosts:
+  - "<rgw pubsub host>"
+  ports:
+  - number: 80 #rgw pubsub port
+    name: http
+    protocol: HTTP
+  location: MESH_EXTERNAL
