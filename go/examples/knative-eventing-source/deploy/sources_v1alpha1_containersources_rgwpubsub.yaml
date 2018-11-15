@@ -6,7 +6,7 @@ metadata:
   name: containersource-rgwpubsub
   namespace: rgwpubsub
 spec:
-  image: github.com/ceph/rgw-pubsub-api/go/examples/knative-eventing-source/container-source
+  image: docker.io/rootfs/rgwpubsub-knative-source
   args:
     - '--subscriptionname=sub1'
     - '--username=rgwtest'

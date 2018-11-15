@@ -25,5 +25,5 @@ spec:
       revisionTemplate:
         spec:
           container:
-            image: github.com/ceph/rgw-pubsub-api/go/examples/knative-eventing-source/receiver
+            image: docker.io/rootfs/rgwpubsub-knative-receiver
  
