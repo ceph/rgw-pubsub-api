@@ -15,3 +15,5 @@ Session.vim
 *.patch
 *.rej
 
+# compiled binary
+/go/examples/knative-eventing-source/_output

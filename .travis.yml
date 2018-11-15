@@ -11,3 +11,9 @@ before_script:
 
 script:
   - ./verify.sh
+
+deploy:
+  - provider: script
+    script:
+    - ./deploy.sh
+                  
