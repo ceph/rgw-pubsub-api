@@ -57,6 +57,10 @@ func main() {
 	}
 
 	flag.Parse()
+	servingAddr := os.Getenv(envResnetServingEndpoint)
+	if len(servingAddr) > 0 {
+		servingEndpoint = servingAddr
+	}
 
 	var err error
 	rgwDownloader, err = rgwdownloader.NewRGWDownload(accessId, accessKey, endpoint, "default")
