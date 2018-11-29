@@ -41,3 +41,39 @@ rgwpubsub-svc-00001   rgwpubsub-svc-00001-service   True
 2018/11/19 15:25:17 [2018-11-19T15:25:16Z] application/json rgwpubsub. Object: "test3"  Bucket: "buck"
 ```
 
+# Advanced Applications
+
+More advanced applications can go into the service functions. As illustrated in the [Google vision app](vision) and [ResNet app](resnet-grpc), the serving
+functions can retrieve the RGW objects, send images to inference services, and get their annotation/classes.
+
+## Google Vision Serving Function
+
+First, edit [service-entry.yaml](deploy/google-vision-svc/service-entry.yaml) and [subscription.yaml](deploy/google-vision-svc/subscription.yaml)
+to reflect local RGW settings and your Google Vision API Key.
+
+Then run the following:
+
+```bash
+kubectl apply -f deploy/google-vision-svc/service-entry.yaml
+kubectl apply -f deploy/google-vision-svc/subscription.yaml
+```
+
+Then upload an cat image into RGW:
+
+```console
+# wget https://r.hswstatic.com/w_907/gif/tesla-cat.jpg
+# ./s3 put buck/cat1.jpg --in-file=./tesla-cat.jpg
+# ./s3 put buck/cat2.jpg --in-file=./tesla-cat.jpg
+```
+
+Checking the serving container's log:
+```console
+# kubectl logs -lserving.knative.dev/service=rgwpubsub-svc -c user-container 
+2018/11/29 16:22:49 Ready and listening on port 8080
+2018/11/29 16:23:42 [2018-11-29T16:23:41Z] application/json rgwpubsub. Object: "cat1.jpg"  Bucket: "buck"
+2018/11/29 16:23:43 label: cat, Score: 0.993347
+2018/11/29 16:25:01 [2018-11-29T16:25:01Z] application/json rgwpubsub. Object: "cat2.jpg"  Bucket: "buck"
+2018/11/29 16:25:02 label: cat, Score: 0.993347
+```
+
+The cat is identified!
