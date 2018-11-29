@@ -1,0 +1,58 @@
+apiVersion: eventing.knative.dev/v1alpha1
+kind: Subscription
+metadata:
+  name: rgw-ps-subscription
+spec:
+  channel:
+    apiVersion: eventing.knative.dev/v1alpha1
+    kind: Channel
+    name: rgw-ps-channel
+  subscriber:
+    ref:
+      apiVersion: serving.knative.dev/v1alpha1
+      kind: Service
+      name: rgwpubsub-svc
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rgw-pubsub-secret
+type: Opaque
+data:
+  s3id:  <bas64 encoded s3 key id>
+  s3key:  <bas64 encoded s3 key secret>
+  s3host: <bas64 encoded rgw endpoint>
+  apikey: <bas64 encoded google vision api key>
+---
+apiVersion: serving.knative.dev/v1alpha1
+kind: Service
+metadata:
+  name: rgwpubsub-svc
+spec:
+  runLatest:
+    configuration:
+      revisionTemplate:
+        spec:
+          container:
+            image: docker.io/rootfs/rgwpubsub-knative-vision
+            env:
+            - name: S3_ACCESS_KEY_ID
+              valueFrom:
+                 secretKeyRef:
+                    name: rgw-pubsub-secret
+                    key: s3id
+            - name: S3_SECRET_ACCESS_KEY
+              valueFrom:
+                 secretKeyRef:
+                    name: rgw-pubsub-secret
+                    key: s3key
+            - name: S3_HOSTNAME
+              valueFrom:
+                 secretKeyRef:
+                    name: rgw-pubsub-secret
+                    key: s3host
+            - name: GOOGLE_VISION_API_KEY
+              valueFrom:
+                 secretKeyRef:
+                    name: rgw-pubsub-secret
+                    key: apikey
