@@ -1,30 +1,38 @@
+TARGETS= source receiver vision resnet
 
-.PHONY: all source receiver
+.PHONY: all $(TARGETS)
 
-all: source receiver
-
-SOURCE_IMAGE_NAME=$(if $(ENV_SOURCE_IMAGE_NAME),$(ENV_SOURCE_IMAGE_NAME),docker.io/rootfs/rgwpubsub-knative-source)
-RECEIVER_IMAGE_NAME=$(if $(ENV_RECEIVER_IMAGE_NAME),$(ENV_RECEIVER_IMAGE_NAME),docker.io/rootfs/rgwpubsub-knative-receiver)
+all: $(TARGETS)
 
 source:
-	CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' -o  _output/rgwpubsub ./container-source
+	CGO_ENABLED=0 GOOS=linux go build -i -a -ldflags '-extldflags "-static"' -o  _output/source ./container-source
 
 receiver:
-	CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' -o  _output/receiver ./receiver
+	CGO_ENABLED=0 GOOS=linux go build -i -a -ldflags '-extldflags "-static"' -o  _output/receiver ./receiver
 
-image: source receiver
-	cp _output/rgwpubsub  container/source
-	docker build -t $(SOURCE_IMAGE_NAME) container/source
-	cp _output/receiver  container/receiver
-	docker build -t $(RECEIVER_IMAGE_NAME) container/receiver
+vision:
+	CGO_ENABLED=0 GOOS=linux go build -i -a -ldflags '-extldflags "-static"' -o  _output/vision ./vision
+
+resnet:
+	CGO_ENABLED=0 GOOS=linux go build -i -a -ldflags '-extldflags "-static"' -o  _output/resnet ./resnet-grpc
+
+
+image: $(TARGETS)
+	for t in $(TARGETS); do \
+			cp _output/$$t  container/$$t; \
+			docker build -t docker.io/rootfs/rgwpubsub-knative-$$t container/$$t; \
+	done
 
 push-image: image
-	docker push $(SOURCE_IMAGE_NAME)
-	docker push $(RECEIVER_IMAGE_NAME)
+	for t in $(TARGETS); do \
+		docker push docker.io/rootfs/rgwpubsub-knative-$$t;\
+	done
 
 clean:
 	go clean -r -x
-	rm -f _output
-	rm -f container/source/rgwpubsub
-	rm -f container/receiver/receiver
+	rm -rf _output
+	for t in $(TARGETS); do \
+		rm -f container/$$t/$$t; \
+	done
+
 

@@ -25,11 +25,11 @@ func Predict(servingAddress string, reader io.ReadCloser) *tf_core_framework.Ten
 			SignatureName: "serving_default",
 		},
 		Inputs: map[string]*tf_core_framework.TensorProto{
-			"image_bytes": &tf_core_framework.TensorProto{
+			"image_bytes": {
 				Dtype: tf_core_framework.DataType_DT_STRING,
 				TensorShape: &tf_core_framework.TensorShapeProto{
 					Dim: []*tf_core_framework.TensorShapeProto_Dim{
-						&tf_core_framework.TensorShapeProto_Dim{
+						{
 							Size: int64(1),
 						},
 					},
@@ -53,6 +53,7 @@ func Predict(servingAddress string, reader io.ReadCloser) *tf_core_framework.Ten
 	}
 
 	tp, ok := resp.Outputs["classes"]
+
 	if !ok {
 		log.Fatalln(err)
 	}
