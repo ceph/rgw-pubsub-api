@@ -1,5 +1,5 @@
 FROM centos:7
 
-COPY rgwpubsub /rgwpubsub
-RUN chmod +x /rgwpubsub
-ENTRYPOINT ["/rgwpubsub"]
+COPY source /source
+RUN chmod +x /source
+ENTRYPOINT ["/source"]
