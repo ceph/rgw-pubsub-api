@@ -48,6 +48,8 @@ functions can retrieve the RGW objects, send images to inference services, and g
 
 ## Google Vision Serving Function
 
+This serving function uses Google Vision service to annotate an image.
+
 First, edit [service-entry.yaml](deploy/google-vision-svc/service-entry.yaml) and [subscription.yaml](deploy/google-vision-svc/subscription.yaml)
 to reflect local RGW settings and your Google Vision API Key.
 
@@ -77,3 +79,39 @@ Checking the serving container's log:
 ```
 
 The cat is identified!
+
+## Tensorflow ResNet Serving Function
+
+This serving function uses ResNet witha  pre-trained ImageNet model to classify an image.
+
+First, edit [service-entry.yaml](deploy/resnet-grpc/service-entry.yaml) and [subscription-resnet.yaml](deploy/resnet-grpc/subscription-grpc.yaml)
+to reflect local RGW settings and your Tensorflow Serving endpoint.
+
+Then run the following:
+
+```bash
+kubectl apply -f deploy/resnet-grpc/service-entry.yaml
+kubectl apply -f deploy/resnet-grpc/subscription-grpc.yaml
+```
+
+Then upload cat and dog images into RGW:
+
+```console
+# wget https://r.hswstatic.com/w_907/gif/tesla-cat.jpg
+# wget https://upload.wikimedia.org/wikipedia/commons/d/d9/Collage_of_Nine_Dogs.jpg
+#./s3 put buck/dogs.jpg --in-file=./Collage_of_Nine_Dogs.jpg
+#./s3 put buck/telsa-cat.jpg --in-file=./tesla-cat.jpg
+```
+
+Checking the serving container's log:
+```console
+# kubectl logs -lserving.knative.dev/service=rgwpubsub-svc -c user-container
+2018/11/29 18:52:23 Ready and listening on port 8080
+2018/11/29 18:54:31 [2018-11-29T18:54:31Z] application/json rgwpubsub. Object: "dogs.jpg"  Bucket: "buck"
+2018/11/29 18:54:32 classes: [162]
+2018/11/29 18:57:54 [2018-11-29T18:57:51Z] application/json rgwpubsub. Object: "telsa-cat.jpg"  Bucket: "buck"
+2018/11/29 18:57:54 classes: [286]
+```
+
+Note, refer to ImageNet classes, classes 162 is 'beagle', class 286 is 'cougar, puma, catamount, mountain lion, painter, panther, Felis concolor'.
+The classifier is close enough!
