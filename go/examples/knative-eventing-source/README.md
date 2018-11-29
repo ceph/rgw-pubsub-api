@@ -84,7 +84,7 @@ The cat is identified!
 
 This serving function uses ResNet witha  pre-trained ImageNet model to classify an image.
 
-First, edit [service-entry.yaml](deploy/resnet-grpc/service-entry.yaml) and [subscription-resnet.yaml](deploy/resnet-grpc/subscription-grpc.yaml)
+First, edit [service-entry.yaml](deploy/resnet-grpc/service-entry.yaml) and [subscription-resnet.yaml](deploy/resnet-grpc/subscription-resnet.yaml)
 to reflect local RGW settings and your Tensorflow Serving endpoint.
 
 Then run the following:
