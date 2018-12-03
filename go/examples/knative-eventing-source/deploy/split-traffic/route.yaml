@@ -1,0 +1,129 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: ServiceEntry
+metadata:
+  name: rgwpubsub-source
+spec:
+  hosts:
+  - "<rgw host>"
+  - "<TF serving host>"  
+  - "vision.googleapis.com"
+  ports:
+  - number: 80 #rgw pubsub port
+    name: http
+    protocol: HTTP
+  - number: 8080 #rgw port
+    name: rgw
+    protocol: HTTP
+  - number: 443 # https
+    name: https
+    protocol: HTTPS
+  - number: 8500 #resnet port
+    name: resnet
+    protocol: TCP
+  location: MESH_EXTERNAL
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rgw-pubsub-secret
+type: Opaque
+data:
+  s3id:  <bas64 encoded s3 key id>
+  s3key:  <bas64 encoded s3 key secret>
+  s3host: <bas64 encoded rgw endpoint>
+  tfserver: <bas64 encoded TF serving endpoint>
+  apikey: <base64 encoded google vision api key>
+---
+apiVersion: serving.knative.dev/v1alpha1
+kind: Configuration
+metadata:
+  name: google-vision-configuration
+spec:
+  revisionTemplate:
+        metadata:
+          labels:
+            knative.dev/type: container
+        spec:
+          container:
+            image: docker.io/rootfs/rgwpubsub-knative-vision
+            env:
+            - name: S3_ACCESS_KEY_ID
+              valueFrom:
+                 secretKeyRef:
+                    name: rgw-pubsub-secret
+                    key: s3id
+            - name: S3_SECRET_ACCESS_KEY
+              valueFrom:
+                 secretKeyRef:
+                    name: rgw-pubsub-secret
+                    key: s3key
+            - name: S3_HOSTNAME
+              valueFrom:
+                 secretKeyRef:
+                    name: rgw-pubsub-secret
+                    key: s3host
+            - name: GOOGLE_VISION_API_KEY
+              valueFrom:
+                 secretKeyRef:
+                    name: rgw-pubsub-secret
+                    key: apikey              
+---
+apiVersion: serving.knative.dev/v1alpha1
+kind: Configuration
+metadata:
+  name: resnet-configuration
+spec:
+  revisionTemplate:
+        metadata:
+          labels:
+            knative.dev/type: container
+        spec:
+          container:
+            image: docker.io/rootfs/rgwpubsub-knative-resnet
+            env:
+            - name: S3_ACCESS_KEY_ID
+              valueFrom:
+                 secretKeyRef:
+                    name: rgw-pubsub-secret
+                    key: s3id
+            - name: S3_SECRET_ACCESS_KEY
+              valueFrom:
+                 secretKeyRef:
+                    name: rgw-pubsub-secret
+                    key: s3key
+            - name: S3_HOSTNAME
+              valueFrom:
+                 secretKeyRef:
+                    name: rgw-pubsub-secret
+                    key: s3host
+            - name: RESNET_SERVING_ENDPOINT
+              valueFrom:
+                 secretKeyRef:
+                    name: rgw-pubsub-secret
+                    key: tfserver
+---            
+apiVersion: serving.knative.dev/v1alpha1
+kind: Route
+metadata:
+  name: rgwpubsub-route
+spec:
+ traffic:
+ - configurationName: google-vision-configuration
+   percent: 50
+ - configurationName: resnet-configuration
+   percent: 50
+---
+apiVersion: eventing.knative.dev/v1alpha1
+kind: Subscription
+metadata:
+  name: rgw-ps-subscription
+spec:
+  channel:
+    apiVersion: eventing.knative.dev/v1alpha1
+    kind: Channel
+    name: rgw-ps-channel
+  subscriber:
+    ref:
+      apiVersion: serving.knative.dev/v1alpha1
+      kind: Route
+      name: rgwpubsub-route

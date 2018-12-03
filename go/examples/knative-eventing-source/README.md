@@ -82,7 +82,7 @@ The cat is identified!
 
 ## Tensorflow ResNet Serving Function
 
-This serving function uses ResNet witha  pre-trained ImageNet model to classify an image.
+This serving function uses ResNet with a  pre-trained ImageNet model to classify an image.
 
 First, edit [service-entry.yaml](deploy/resnet-grpc/service-entry.yaml) and [subscription-resnet.yaml](deploy/resnet-grpc/subscription-resnet.yaml)
 to reflect local RGW settings and your Tensorflow Serving endpoint.
@@ -115,3 +115,102 @@ Checking the serving container's log:
 
 Note, refer to ImageNet classes, classes 162 is 'beagle', class 286 is 'cougar, puma, catamount, mountain lion, painter, panther, Felis concolor'.
 The classifier is close enough!
+
+# Splitting Traffic between Google Vision and ResNet functions
+
+This is a more advanced Knative serving configuration: splitting traffic between two functions.
+
+## Why to split traffic?
+
+There are a plenty of use cases for this, e.g. you start with your own inference service but as business grows, a Cloud burst is
+the natural choice as your in-house inference service fail to scale economically.
+
+## How to split traffic in Knative
+Splitting traffic between multiple services requires a more advanced Knative configuration. We need to use `Route` rather than `Service`
+in our `Subscription`, as illustrated below:
+```yaml
+apiVersion: eventing.knative.dev/v1alpha1
+kind: Subscription
+metadata:
+  name: rgw-ps-subscription
+spec:
+  channel:
+    apiVersion: eventing.knative.dev/v1alpha1
+    kind: Channel
+    name: rgw-ps-channel
+  subscriber:
+    ref:
+      apiVersion: serving.knative.dev/v1alpha1
+      kind: Route
+      name: rgwpubsub-route
+```
+
+In Knative Serving, a route is an aggregation of configurations and ratios of how much traffic is dispatched into each configration.
+Our traffic splitting example evenly divides requests into Google Vision and ResNet:
+
+```yaml
+apiVersion: serving.knative.dev/v1alpha1
+kind: Route
+metadata:
+  name: rgwpubsub-route
+spec:
+ traffic:
+ - configurationName: google-vision-configuration
+   percent: 50
+ - configurationName: resnet-configuration
+   percent: 50
+```
+
+A Knative Serving `Configuration` is very similar to `Service`, as illustrated in [route.yaml](deploy/split-traffic/route.yaml)
+
+## Test traffic split
+
+First, edit [route.yaml](deploy/split-traffic/route.yaml) to reflect your RGW credentials and endpoints and Google Vision API key.
+
+Then run the following:
+
+```console
+kubectl apply -f deploy/split-traffic/route.yaml
+```
+
+Once the serving Pods are up and running, upload some images to RGW:
+
+```console
+# wget https://r.hswstatic.com/w_907/gif/tesla-cat.jpg
+# for i in $(seq 1 10); do ./s3 put buck/cat-${i}.jpg --in-file=./tesla-cat.jpg; done
+```
+
+From the logs of the ResNet Serving function:
+
+```console
+# kubectl logs -lserving.knative.dev/configuration=resnet-configuration -c user-container
+2018/12/03 15:20:49 Ready and listening on port 8080
+2018/12/03 15:24:10 [2018-12-03T15:24:10Z] application/json rgwpubsub. Object: "cat-7.jpg"  Bucket: "buck"
+2018/12/03 15:24:11 classes: [286]
+2018/12/03 15:24:12 [2018-12-03T15:24:12Z] application/json rgwpubsub. Object: "cat-2.jpg"  Bucket: "buck"
+2018/12/03 15:24:12 classes: [286]
+2018/12/03 15:24:12 [2018-12-03T15:24:12Z] application/json rgwpubsub. Object: "cat-3.jpg"  Bucket: "buck"
+2018/12/03 15:24:12 classes: [286]
+2018/12/03 15:24:13 [2018-12-03T15:24:13Z] application/json rgwpubsub. Object: "cat-4.jpg"  Bucket: "buck"
+2018/12/03 15:24:13 classes: [286]
+2018/12/03 15:24:16 [2018-12-03T15:24:16Z] application/json rgwpubsub. Object: "cat-9.jpg"  Bucket: "buck"
+2018/12/03 15:24:16 classes: [286]
+2018/12/03 15:24:16 [2018-12-03T15:24:16Z] application/json rgwpubsub. Object: "cat-10.jpg"  Bucket: "buck"
+2018/12/03 15:24:16 classes: [286]
+```
+
+And from the logs of the Google Vision Serving fucntion:
+```console
+# kubectl logs -lserving.knative.dev/configuration=google-vision-configuration -c user-container
+2018/12/03 15:20:48 Ready and listening on port 8080
+2018/12/03 15:24:11 [2018-12-03T15:24:11Z] application/json rgwpubsub. Object: "cat-1.jpg"  Bucket: "buck"
+2018/12/03 15:24:11 label: cat, Score: 0.993347
+2018/12/03 15:24:11 [2018-12-03T15:24:11Z] application/json rgwpubsub. Object: "cat-5.jpg"  Bucket: "buck"
+2018/12/03 15:24:12 label: cat, Score: 0.993347
+2018/12/03 15:24:12 [2018-12-03T15:24:12Z] application/json rgwpubsub. Object: "cat-6.jpg"  Bucket: "buck"
+2018/12/03 15:24:13 label: cat, Score: 0.993347
+2018/12/03 15:24:15 [2018-12-03T15:24:15Z] application/json rgwpubsub. Object: "cat-8.jpg"  Bucket: "buck"
+2018/12/03 15:24:16 label: cat, Score: 0.993347
+```
+
+The traffic indeed ran into the two serving functions.
