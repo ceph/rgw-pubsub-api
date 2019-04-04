@@ -1,11 +1,19 @@
 # Setup
 
-Follow [Knative installation instructions](https://github.com/knative/docs)
+Follow [Knative installation instructions](https://www.knative.dev/docs/install/)
 
-## Install Knative serving
-## Install Knative eventing
+## Install Knative Serving
+```bash
+curl -L https://github.com/knative/serving/releases/download/v0.4.0/serving.yaml \
+  | sed 's/LoadBalancer/NodePort/' \
+  | kubectl apply --filen
+```
+## Install Knative Eventing
+```bash
+kubectl apply --filename https://github.com/knative/eventing/releases/download/v0.4.0/release.yaml
+kubectl apply --filename https://github.com/knative/eventing-sources/releases/download/v0.4.0/release.yaml
+```
 ## Install Knative event source CRD and Controller
-
 
 # Install RGW Event source
 
@@ -13,6 +21,8 @@ Edit `sources_v1alpha1_containersources_rgwpubsub.yaml` and `service-entry.yaml`
 
 ```bash
 cd deploy
+
+kubectl apply -f rgwpubsub-ns.yaml
 kubectl apply -f channel.yaml
 kubectl apply -f subscription.yaml
 kubectl apply -f service-entry.yaml
@@ -23,20 +33,20 @@ kubectl apply -f sources_v1alpha1_containersources_rgwpubsub.yaml
 
 ## Service is up and ready
 ```console
-# kubectl get revision
+# kubectl get revision -n rgwpubsub
 NAME                  SERVICE NAME                  READY   REASON
 rgwpubsub-svc-00001   rgwpubsub-svc-00001-service   True
 ```
 ## RGW PubSub messages are received and posted
 ```console
-#kubectl logs -lsource=containersource-rgwpubsub -c source
+# kubectl logs -lsource=containersource-rgwpubsub -c source -n rgwpubsub
 2018/11/19 15:25:11 Target is: "http://rgw-ps-channel-channel.default.svc.cluster.local/"
 2018/11/19 15:25:16 Posting to "http://rgw-ps-channel-channel.default.svc.cluster.local/"
 2018/11/19 15:25:17 response Status: 202 Accepted
 ```
 ## Events are received on Knative serving function
 ```console
-# kubectl logs -lserving.knative.dev/service=rgwpubsub-svc -c user-container |more
+# kubectl logs -lserving.knative.dev/service=rgwpubsub-svc -c user-container | more
 2018/11/19 15:25:08 Ready and listening on port 8080
 2018/11/19 15:25:17 [2018-11-19T15:25:16Z] application/json rgwpubsub. Object: "test3"  Bucket: "buck"
 ```
