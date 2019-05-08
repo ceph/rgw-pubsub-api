@@ -36,21 +36,20 @@ func init() {
 }
 
 var (
-	userName         = flag.String("username", "rgwtest", "rgw user name")
-	zonegroup        = flag.String("zonegroup", "", "rgw zone group")
-	topicName        = flag.String("topicname", "mytopic", "pubsub topic name")
-	subName          = flag.String("subname", "mysub", "pubsub subscription name")
-	notificationName = flag.String("notifname", "mynotification", "pubsub notification name")
-	bucketName       = flag.String("bucketname", "buck", "existing rgw bucket name")
-	cleanup          = flag.Bool("cleanup", false, "clean up after run")
-	readonly         = flag.Bool("readonly", false, "read only")
+	userName   = flag.String("username", "rgwtest", "rgw user name")
+	zonegroup  = flag.String("zonegroup", "", "rgw zone group")
+	topicName  = flag.String("topicname", "mytopic", "pubsub topic name")
+	subName    = flag.String("subname", "mysub", "pubsub subscription name")
+	bucketName = flag.String("bucketname", "buck", "existing rgw bucket name")
+	cleanup    = flag.Bool("cleanup", false, "clean up after run")
+	readonly   = flag.Bool("readonly", false, "read only")
 )
 
 func main() {
 	flag.Parse()
 
-	glog.Infof("user name %s, topic %s, sub %s, notification %s bucket %s to-clean-up %v readonly %v",
-		*userName, *topicName, *subName, *notificationName, *bucketName, *cleanup, *readonly)
+	glog.Infof("user name %s, topic %s, sub %s, bucket %s to-clean-up %v readonly %v",
+		*userName, *topicName, *subName, *bucketName, *cleanup, *readonly)
 
 	accessId := os.Getenv(envAccessId)
 	accessKey := os.Getenv(envAccessKey)

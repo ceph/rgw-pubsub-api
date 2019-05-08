@@ -25,14 +25,13 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/knative/pkg/cloudevents"
 
 	"github.com/ceph/rgw-pubsub-api/go/pkg"
 )
 
 const (
-	envAccessId  = "S3_ACCESS_KEY_ID"
+	envAccessID  = "S3_ACCESS_KEY_ID"
 	envAccessKey = "S3_SECRET_ACCESS_KEY"
 	envEndpoint  = "S3_HOSTNAME"
 )
@@ -40,36 +39,17 @@ const (
 var (
 	userName  = flag.String("username", "", "rgw user name")
 	zonegroup = flag.String("zonegroup", "", "rgw zone group")
-	subName   = flag.String("subscriptionname", "", "pubsub subscription name")
+	subName   = flag.String("subscriptionname", "", "pubsub subscription name (should exist)")
 	target    = flag.String("sink", "", "uri to send events to")
 	pollInt   = flag.String("interval", "5", "polling interval in seconds")
 )
 
-type PubSubEventWatcher struct {
-	client *rgwpubsub.RGWClient
-	target string
-}
-
-func NewPubSubEventWatcher(client *rgwpubsub.RGWClient, target string) *PubSubEventWatcher {
-	return &PubSubEventWatcher{target: target, client: client}
-}
-
-func (ps *PubSubEventWatcher) updateEvent(old, new interface{}) {
-	ps.addEvent(new)
-}
-
-func (ps *PubSubEventWatcher) addEvent(new interface{}) {
-	event := new.(*rgwpubsub.RGWEvent)
-	log.Printf("GOT EVENT: %+v", event)
-	postMessage(ps.target, event)
-}
-
 func main() {
-	accessId := os.Getenv(envAccessId)
+	accessID := os.Getenv(envAccessID)
 	accessKey := os.Getenv(envAccessKey)
 	endpoint := os.Getenv(envEndpoint)
-	if len(accessId) == 0 || len(accessKey) == 0 || len(endpoint) == 0 {
-		log.Fatalf("env %s, %s, or %s not set", envAccessId, envAccessKey, envEndpoint)
+	if len(accessID) == 0 || len(accessKey) == 0 || len(endpoint) == 0 {
+		log.Fatalf("env %s, %s, or %s not set", envAccessID, envAccessKey, envEndpoint)
 	}
 
 	flag.Parse()
@@ -81,12 +61,13 @@ func main() {
 		log.Fatalf("No sink target")
 	}
 
-	rgwClient, err := rgwpubsub.NewRGWClient(*userName, accessId, accessKey, endpoint, *zonegroup)
+	rgwClient, err := rgwpubsub.NewRGWClient(*userName, accessID, accessKey, endpoint, *zonegroup)
 	if err != nil {
-		glog.Fatalf("failed to create rgw pubsub client: %v", err)
+		log.Fatalf("Failed to create rgw pubsub client: %v", err)
 	}
 
 	log.Printf("Target is: %q", *target)
+	log.Printf("Events will be fetched from rgw: %s", endpoint)
 
 	var period time.Duration
 	if p, err := strconv.Atoi(*pollInt); err != nil {
@@ -99,21 +80,27 @@ func main() {
 	for {
 		events, err := rgwClient.RGWGetEvents(*subName, 0, "")
 		if err != nil {
-			log.Printf("failed to gets event: %v", err)
+			log.Printf("Failed to gets event: %v", err)
 		} else {
 			if events != nil {
+				log.Printf("%d events fetched", len(events.Events))
 				for _, e := range events.Events {
 					err = postMessage(*target, &e)
 					if err == nil {
+						log.Printf("Event %s was successfully posted to knative", e.Id)
 						// delete event
 						err = rgwClient.RGWDeleteEvent(*subName, e.Id)
 						if err != nil {
-							log.Printf("failed to delete event %s: %v", e.Id, err)
+							log.Printf("Failed to delete event %s: %v", e.Id, err)
+						} else {
+							log.Printf("Event %s was successfully acked in rgw", e.Id)
 						}
 					} else {
-						log.Printf("failed to post event %s: %v", e.Id, err)
+						log.Printf("Failed to post event %s: %v", e.Id, err)
 					}
 				}
+			} else {
+				log.Print("No events fetched")
 			}
 		}
 		// Wait for next tick
@@ -151,8 +138,8 @@ func postMessage(target string, e *rgwpubsub.RGWEvent) error {
 		return err
 	}
 	defer resp.Body.Close()
-	log.Printf("response Status: %s", resp.Status)
+	log.Printf("Response Status: %s", resp.Status)
 	body, _ := ioutil.ReadAll(resp.Body)
-	log.Printf("response Body: %s", string(body))
+	log.Printf("Response Body: %s", string(body))
 	return nil
 }

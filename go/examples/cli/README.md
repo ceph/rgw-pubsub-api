@@ -3,7 +3,7 @@
 ## Build
 
 ```bash
-go build rgw_pubsub_cli.go
+go build rgw_ps_cli.go
 ```
 
 ## Setup test environment
