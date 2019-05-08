@@ -1,13 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"time"
-	"encoding/json"
 
 	"github.com/knative/pkg/cloudevents"
 
@@ -21,12 +21,12 @@ const (
 )
 
 var (
-	userName  = flag.String("username", "", "rgw user name")
-	zonegroup = flag.String("zonegroup", "", "rgw zone group")
-	subName   = flag.String("subscriptionname", "", "pubsub subscription name (should exist) for scking")
-	target    = flag.String("sink", "", "uri to send events to")
-	listenPort   = flag.String("port", "8080", "listening port")
-	rgwClient *rgwpubsub.RGWClient
+	userName   = flag.String("username", "", "rgw user name")
+	zonegroup  = flag.String("zonegroup", "", "rgw zone group")
+	subName    = flag.String("subscriptionname", "", "pubsub subscription name (should exist) for scking")
+	target     = flag.String("sink", "", "uri to send events to")
+	listenPort = flag.String("port", "8080", "listening port")
+	rgwClient  *rgwpubsub.RGWClient
 )
 
 func postHandler(w http.ResponseWriter, r *http.Request) {
@@ -47,8 +47,8 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 
 	var e rgwpubsub.RGWEvent
 	err = json.Unmarshal(body, &e)
-	
-    if err != nil {
+
+	if err != nil {
 		log.Printf("Failed to parse JSON notification: %v", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -100,7 +100,7 @@ func main() {
 	log.Printf("Events will acked to rgw: %s", endpoint)
 
 	http.HandleFunc("/", postHandler)
-    log.Fatal(http.ListenAndServe(":"+*listenPort, nil))
+	log.Fatal(http.ListenAndServe(":"+*listenPort, nil))
 }
 
 // Creates a CloudEvent Context for a pubsub event.

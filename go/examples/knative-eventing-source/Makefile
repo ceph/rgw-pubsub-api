@@ -7,19 +7,24 @@ REPO=rootfs
 all: $(TARGETS)
 
 source:
-	CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o  _output/source ./container-source
+	gofmt -s -w ./container-source && \
+	CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o  _output/$@ ./container-source
 
 receiver:
-	CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o  _output/receiver ./receiver
+	gofmt -s -w $@ && \
+	CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o  _output/$@ ./$@
 
 vision:
-	CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o  _output/vision ./vision
+	gofmt -s -w $@ && \
+	CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o  _output/$@ ./$@
 
 resnet:
+	gofmt -s -w ./resnet-grpc && \
 	CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o  _output/resnet ./resnet-grpc
 
 http-to-knative:
-	CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o  _output/http-to-knative ./http-to-knative
+	gofmt -s -w $@ && \
+	CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o  _output/$@ ./$@
 
 image: $(TARGETS)
 	for t in $(TARGETS); do \

@@ -69,7 +69,6 @@ func main() {
 	log.Printf("Target is: %q", *target)
 	log.Printf("Events will be fetched from rgw: %s", endpoint)
 
-
 	var period time.Duration
 	if p, err := strconv.Atoi(*pollInt); err != nil {
 		period = time.Duration(5) * time.Second
