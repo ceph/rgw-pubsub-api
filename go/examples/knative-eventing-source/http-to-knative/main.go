@@ -1,19 +1,3 @@
-/*
-Copyright 2018 The Knative Authors
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package main
 
 import (
@@ -22,8 +6,8 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"time"
+	"encoding/json"
 
 	"github.com/knative/pkg/cloudevents"
 
@@ -39,20 +23,65 @@ const (
 var (
 	userName  = flag.String("username", "", "rgw user name")
 	zonegroup = flag.String("zonegroup", "", "rgw zone group")
-	subName   = flag.String("subscriptionname", "", "pubsub subscription name (should exist)")
+	subName   = flag.String("subscriptionname", "", "pubsub subscription name (should exist) for scking")
 	target    = flag.String("sink", "", "uri to send events to")
-	pollInt   = flag.String("interval", "5", "polling interval in seconds")
+	listenPort   = flag.String("port", "8080", "listening port")
+	rgwClient *rgwpubsub.RGWClient
 )
+
+func postHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		log.Printf("%s method not allowed", r.Method)
+		http.Error(w, "405 Method Not Allowed", http.StatusBadRequest)
+		return
+	}
+
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Printf("Error reading message body: %v", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	log.Print(string(body))
+
+	var e rgwpubsub.RGWEvent
+	err = json.Unmarshal(body, &e)
+	
+    if err != nil {
+		log.Printf("Failed to parse JSON notification: %v", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	log.Printf("Successfully created event: %v", e)
+	if err := postMessage(*target, &e); err == nil {
+		log.Printf("Event %s was successfully posted to knative", e.Id)
+		// delete event
+		if rgwClient != nil {
+			err = rgwClient.RGWDeleteEvent(*subName, e.Id)
+			if err != nil {
+				log.Printf("Failed to delete event %s: %v", e.Id, err)
+			} else {
+				log.Printf("Event %s was successfully acked in rgw", e.Id)
+			}
+		}
+	} else {
+		log.Printf("Failed to post event %s: %v", e.Id, err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+}
 
 func main() {
 	accessID := os.Getenv(envAccessID)
 	accessKey := os.Getenv(envAccessKey)
 	endpoint := os.Getenv(envEndpoint)
+
 	if len(accessID) == 0 || len(accessKey) == 0 || len(endpoint) == 0 {
 		log.Fatalf("env %s, %s, or %s not set", envAccessID, envAccessKey, envEndpoint)
 	}
 
 	flag.Parse()
+
 	if subName == nil || len(*subName) == 0 {
 		log.Fatalf("No subscription name")
 	}
@@ -61,52 +90,17 @@ func main() {
 		log.Fatalf("No sink target")
 	}
 
-	rgwClient, err := rgwpubsub.NewRGWClient(*userName, accessID, accessKey, endpoint, *zonegroup)
+	var err error
+	rgwClient, err = rgwpubsub.NewRGWClient(*userName, accessID, accessKey, endpoint, *zonegroup)
 	if err != nil {
 		log.Fatalf("Failed to create rgw pubsub client: %v", err)
 	}
 
 	log.Printf("Target is: %q", *target)
-	log.Printf("Events will be fetched from rgw: %s", endpoint)
+	log.Printf("Events will acked to rgw: %s", endpoint)
 
-
-	var period time.Duration
-	if p, err := strconv.Atoi(*pollInt); err != nil {
-		period = time.Duration(5) * time.Second
-	} else {
-		period = time.Duration(p) * time.Second
-	}
-
-	ticker := time.NewTicker(period)
-	for {
-		events, err := rgwClient.RGWGetEvents(*subName, 0, "")
-		if err != nil {
-			log.Printf("Failed to gets event: %v", err)
-		} else {
-			if events != nil {
-				log.Printf("%d events fetched", len(events.Events))
-				for _, e := range events.Events {
-					err = postMessage(*target, &e)
-					if err == nil {
-						log.Printf("Event %s was successfully posted to knative", e.Id)
-						// delete event
-						err = rgwClient.RGWDeleteEvent(*subName, e.Id)
-						if err != nil {
-							log.Printf("Failed to delete event %s: %v", e.Id, err)
-						} else {
-							log.Printf("Event %s was successfully acked in rgw", e.Id)
-						}
-					} else {
-						log.Printf("Failed to post event %s: %v", e.Id, err)
-					}
-				}
-			} else {
-				log.Print("No events fetched")
-			}
-		}
-		// Wait for next tick
-		<-ticker.C
-	}
+	http.HandleFunc("/", postHandler)
+    log.Fatal(http.ListenAndServe(":"+*listenPort, nil))
 }
 
 // Creates a CloudEvent Context for a pubsub event.
@@ -139,8 +133,8 @@ func postMessage(target string, e *rgwpubsub.RGWEvent) error {
 		return err
 	}
 	defer resp.Body.Close()
-	log.Printf("Response Status: %s", resp.Status)
+	log.Printf("response Status: %s", resp.Status)
 	body, _ := ioutil.ReadAll(resp.Body)
-	log.Printf("Response Body: %s", string(body))
+	log.Printf("response Body: %s", string(body))
 	return nil
 }

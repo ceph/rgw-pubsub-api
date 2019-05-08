@@ -1,6 +1,6 @@
-TARGETS= source receiver vision resnet
+TARGETS=source receiver vision resnet http-to-knative
 
-.PHONY: all $(TARGETS)
+.PHONY: all clean image push-image $(TARGETS)
 
 REPO=rootfs
 
@@ -18,6 +18,8 @@ vision:
 resnet:
 	CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o  _output/resnet ./resnet-grpc
 
+http-to-knative:
+	CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o  _output/http-to-knative ./http-to-knative
 
 image: $(TARGETS)
 	for t in $(TARGETS); do \
