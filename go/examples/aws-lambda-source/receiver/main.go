@@ -7,16 +7,27 @@ import (
 	"github.com/ceph/rgw-pubsub-api/go/examples/knative-eventing-source/vision/pkg/googlevision"
 	"github.com/ceph/rgw-pubsub-api/go/pkg"
 	"log"
+	"os"
 )
 
 type MyResponse struct {
 	Message string `json:"answer"`
 }
 
-//go:generate ./secret_vars.sh
+const (
+	envS3AccessID         = "S3_ACCESS_KEY_ID"
+	envS3AccessKey        = "S3_SECRET_ACCESS_KEY"
+	envS3Endpoint         = "S3_HOSTNAME"
+	envGoogleVisionAPIKey = "GOOGLE_VISION_API_KEY"
+)
+
 var (
-	region    = "default"
-	maxLabels = 5
+	s3AccessID         string
+	s3AccessKey        string
+	s3Endpoint         string
+	googleVisionAPIKey string
+	region             = "default"
+	maxLabels          = 5
 )
 
 func HandleLambdaEvent(event rgwpubsub.RGWEvent) (MyResponse, error) {
@@ -61,5 +72,13 @@ func HandleLambdaEvent(event rgwpubsub.RGWEvent) (MyResponse, error) {
 }
 
 func main() {
+	s3AccessID = os.Getenv(envS3AccessID)
+	s3AccessKey = os.Getenv(envS3AccessKey)
+	s3Endpoint = os.Getenv(envS3Endpoint)
+	googleVisionAPIKey = os.Getenv(envGoogleVisionAPIKey)
+
+	if len(s3AccessID) == 0 || len(s3AccessKey) == 0 || len(s3Endpoint) == 0 || len(googleVisionAPIKey) == 0 {
+		log.Fatalf("env %s, %s, %s or %s not set", envS3AccessID, envS3AccessKey, envS3Endpoint, envGoogleVisionAPIKey)
+	}
 	lambda.Start(HandleLambdaEvent)
 }

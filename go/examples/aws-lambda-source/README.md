@@ -1,12 +1,11 @@
 # Build
 Install ```aws``` command according to: https://docs.aws.amazon.com/cli/latest/userguide/install-linux.html
 Set the following environment variables for the **build** process:
-```AWS_REGION``` - the region where the lambda function should be created (e.g. "us-east-1")
+```AWS_DEFAULT_REGION``` - the region where the lambda function should be created (e.g. "us-east-1")
 ```AWS_ACCOUNT``` - your AWS account ID
 ```AWS_IAM_USER``` - an AWS user allowed to create and update lambda functions
 ```AWS_ACCESS_KEY_ID``` - access ID for the AWS
 ```AWS_SECRET_ACCESS_KEY``` - secret key for the AWS
-```AWS_DEFAULT_REGION``` - same as ```AWS_REGION```
 ```S3_ACCESS_KEY_ID``` - access ID for the radosgw
 ```S3_SECRET_ACCESS_KEY``` - secret key for the radosgw
 ```S3_HOSTNAME``` - URL for the main radosgw (e.g. "http://my-rgw:8000")

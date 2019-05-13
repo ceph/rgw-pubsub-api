@@ -22,7 +22,7 @@ const (
 	envS3Endpoint   = "S3_HOSTNAME"
 	envAWSAccessID  = "AWS_ACCESS_KEY_ID"
 	envAWSAccessKey = "AWS_SECRET_ACCESS_KEY"
-	envAWSRegion    = "AWS_REGION"
+	envAWSRegion    = "AWS_DEFAULT_REGION"
 )
 
 var (
