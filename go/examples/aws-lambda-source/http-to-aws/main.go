@@ -65,7 +65,7 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("Successfully created event: %v", e)
 	if err := invokeLambda(&e); err == nil {
-		log.Printf("Event %s was successfully posted to knative", e.Id)
+		log.Printf("Event %s was successfully posted to aws/lambda", e.Id)
 		// delete event
 		if rgwClient != nil {
 			err = rgwClient.RGWDeleteEvent(*subName, e.Id)
@@ -115,17 +115,8 @@ func main() {
 	log.Fatal(http.ListenAndServe(":"+*listenPort, nil))
 }
 
-type getItemsResponseBody struct {
+type Response struct {
 	Message string `json:"answer"`
-}
-
-type getItemsResponseHeaders struct {
-	ContentType string `json:"Content-Type"`
-}
-type getItemsResponse struct {
-	StatusCode int                     `json:"statusCode"`
-	Headers    getItemsResponseHeaders `json:"headers"`
-	Body       getItemsResponseBody    `json:"body"`
 }
 
 func invokeLambda(e *rgwpubsub.RGWEvent) error {
@@ -141,7 +132,7 @@ func invokeLambda(e *rgwpubsub.RGWEvent) error {
 
 	client := lambda.New(sess, &aws.Config{
 		Region:      aws.String(awsRegion),
-		Credentials: credentials.NewStaticCredentials(awsAccessID, awsAccessKey, "TOKEN"),
+		Credentials: credentials.NewStaticCredentials(awsAccessID, awsAccessKey, ""),
 	})
 
 	result, err := client.Invoke(&lambda.InvokeInput{FunctionName: aws.String("receiver"), Payload: payload})
@@ -151,18 +142,20 @@ func invokeLambda(e *rgwpubsub.RGWEvent) error {
 		return err
 	}
 
-	var resp getItemsResponse
+	if result.StatusCode == nil || *result.StatusCode != 200 {
+		log.Printf("Invalid status code: %d", result.StatusCode)
+		return nil
+	}
 
-	err = json.Unmarshal(result.Payload, &resp)
+	var response Response
+
+	err = json.Unmarshal(result.Payload, &response)
 	if err != nil {
 		log.Printf("Error unmarshalling receiver response: %q", err)
 		return err
 	}
 
-	if resp.StatusCode != 200 {
-		log.Printf("Invalid status code: %d", resp.StatusCode)
-		return nil
-	}
-	log.Printf("receiver response: %q", resp.Body.Message)
+	log.Print("response:")
+	log.Print(response)
 	return nil
 }

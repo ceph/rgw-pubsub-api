@@ -20,8 +20,9 @@ create-test-receiver:
 
 create-receiver:
 	cd receiver && \
-	gofmt -s -w main.go && \
-	CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o  main main.go && \
+	go generate && \
+	gofmt -s -w *.go && \
+	CGO_ENABLED=0 GOOS=linux go build -ldflags '-extldflags "-static"' -o  main *.go && \
 	zip main.zip main && \
 	aws lambda create-function \
   	--region ${AWS_REGION} \

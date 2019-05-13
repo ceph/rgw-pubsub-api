@@ -1,3 +1,11 @@
+# Build
+First install missing packages:
+```bash
+go get google.golang.org/grpc
+go get github.com/golang/protobuf/proto
+```
+Then build all binaries using: ```make```
+
 # Setup
 
 Follow [Knative installation instructions](https://www.knative.dev/docs/install/)
@@ -8,15 +16,14 @@ curl -L https://github.com/knative/serving/releases/download/v0.4.0/serving.yaml
   | sed 's/LoadBalancer/NodePort/' \
   | kubectl apply --filen
 ```
+
 ## Install Knative Eventing
 ```bash
 kubectl apply --filename https://github.com/knative/eventing/releases/download/v0.4.0/release.yaml
 kubectl apply --filename https://github.com/knative/eventing-sources/releases/download/v0.4.0/release.yaml
 ```
-## Install Knative event source CRD and Controller
 
-# Install RGW Event source
-
+## Install RGW Event source
 Edit `sources_v1alpha1_containersources_rgwpubsub.yaml` and `service-entry.yaml` to reflect local settings.
 
 ```bash
