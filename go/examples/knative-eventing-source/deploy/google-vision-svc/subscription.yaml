@@ -2,6 +2,7 @@ apiVersion: eventing.knative.dev/v1alpha1
 kind: Subscription
 metadata:
   name: rgw-ps-subscription
+  namespace: rgwpubsub
 spec:
   channel:
     apiVersion: eventing.knative.dev/v1alpha1
@@ -17,17 +18,18 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: rgw-pubsub-secret
-type: Opaque
-data:
-  s3id:  <bas64 encoded s3 key id>
-  s3key:  <bas64 encoded s3 key secret>
-  s3host: <bas64 encoded rgw endpoint>
-  apikey: <bas64 encoded google vision api key>
+  namespace: rgwpubsub
+stringData:
+  s3id: <rgw s3 access key>
+  s3key: <rgw s3 key secret>
+  s3host: <rgw endpoint URL>
+  apikey: <google vision api key>
 ---
 apiVersion: serving.knative.dev/v1alpha1
 kind: Service
 metadata:
   name: rgwpubsub-svc
+  namespace: rgwpubsub
 spec:
   runLatest:
     configuration:

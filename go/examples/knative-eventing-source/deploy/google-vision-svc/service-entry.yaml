@@ -2,15 +2,16 @@ apiVersion: networking.istio.io/v1alpha3
 kind: ServiceEntry
 metadata:
   name: rgwpubsub-source
+  namespace: rgwpubsub
 spec:
   hosts:
-  - "<rgw endpoint>"
+  - "<rgw hostname>"
   - "vision.googleapis.com" # to access google vision
   ports:
-  - number: 80 #rgw pubsub port
+  - number: 8001 #rgw pubsub port
     name: http
     protocol: HTTP
-  - number: 8080 #rgw port
+  - number: 8000 #rgw port
     name: rgw
     protocol: HTTP
   - number: 443 # https, to access google vision endpoint

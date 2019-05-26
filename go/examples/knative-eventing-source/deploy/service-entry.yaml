@@ -5,9 +5,9 @@ metadata:
   namespace: rgwpubsub
 spec:
   hosts:
-  - "<rgw pubsub host>"
+      - "<rgw pubsub hostname>"
   ports:
-  - number: 80 #rgw pubsub port
+  - number: 8001 #rgw pubsub port
     name: http
     protocol: HTTP
   location: MESH_EXTERNAL

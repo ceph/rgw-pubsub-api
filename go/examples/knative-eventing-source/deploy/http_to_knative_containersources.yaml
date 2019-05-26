@@ -3,21 +3,22 @@ kind: ContainerSource
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
-  name: containersource-rgwpubsub
+  name: http-to-knative-rgwpubsub
   namespace: rgwpubsub
 spec:
-  image: docker.io/rootfs/rgwpubsub-knative-source
+  image: docker.io/yuvalif/rgwpubsub-knative-http-to-knative
   args:
-    - '--subscriptionname=sub1'
-    - '--username=rgwtest'
-    - '--zonegroup=zg1'
+    - '--subscriptionname=<subscription for acking>'
+    - '--username=<user name>'
+    - '--zonegroup=<zone group>'
+    - '--port=<internal listening port>'
   env:
    - name: S3_ACCESS_KEY_ID
-     value: '<rgw s3 access key>'
+     value: '<rgw access key>'
    - name: S3_SECRET_ACCESS_KEY
-     value: '<rgw s3 secret>'
+     value: '<rgw secret key>'
    - name: S3_HOSTNAME
-     value: '<rgw pubsub endpoint URL>'
+     value: '<rgw pubsub URL>'
   sink:
     apiVersion: eventing.knative.dev/v1alpha1
     kind: Channel
