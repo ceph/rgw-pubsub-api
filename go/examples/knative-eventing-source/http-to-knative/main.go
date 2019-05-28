@@ -96,8 +96,9 @@ func main() {
 		log.Fatalf("Failed to create rgw pubsub client: %v", err)
 	}
 
+	log.Printf("Listening on port: %q", *listenPort)
 	log.Printf("Target is: %q", *target)
-	log.Printf("Events will acked to rgw: %s", endpoint)
+	log.Printf("Events will acked to rgw: %q", endpoint)
 
 	http.HandleFunc("/", postHandler)
 	log.Fatal(http.ListenAndServe(":"+*listenPort, nil))

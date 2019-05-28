@@ -36,13 +36,14 @@ func init() {
 }
 
 var (
-	userName   = flag.String("username", "rgwtest", "rgw user name")
-	zonegroup  = flag.String("zonegroup", "", "rgw zone group")
-	topicName  = flag.String("topicname", "mytopic", "pubsub topic name")
-	subName    = flag.String("subname", "mysub", "pubsub subscription name")
-	bucketName = flag.String("bucketname", "buck", "existing rgw bucket name")
-	cleanup    = flag.Bool("cleanup", false, "clean up after run")
-	readonly   = flag.Bool("readonly", false, "read only")
+	userName     = flag.String("username", "rgwtest", "rgw user name")
+	zonegroup    = flag.String("zonegroup", "", "rgw zone group")
+	topicName    = flag.String("topicname", "mytopic", "pubsub topic name")
+	subName      = flag.String("subscriptionname", "mysub", "pubsub subscription name")
+	bucketName   = flag.String("bucketname", "buck", "existing rgw bucket name")
+	cleanup      = flag.Bool("cleanup", false, "clean up after run")
+	readonly     = flag.Bool("readonly", false, "read only")
+	pushEndpoint = flag.String("pushendpoint", "", "URL of endpoint to push notifications to")
 )
 
 func main() {
@@ -81,7 +82,7 @@ func main() {
 	glog.Infof("notifications: %+v", notif)
 	if !*readonly {
 		// create subscription
-		err = rgwClient.RGWCreateSubscription(*subName, *topicName, endpoint)
+		err = rgwClient.RGWCreateSubscription(*subName, *topicName, *pushEndpoint)
 		if err != nil {
 			glog.Fatalf("failed to create subscription: %v", err)
 		}
