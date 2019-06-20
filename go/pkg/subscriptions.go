@@ -19,6 +19,7 @@ package rgwpubsub
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 
 	"github.com/golang/glog"
 )
@@ -43,16 +44,38 @@ POST /subscriptions/<name>?ack&event-id=<id>
 */
 
 // RGWCreateSubscription creates a subscription for a topic
-func (rgw *RGWClient) RGWCreateSubscription(sub, topic, endpoint string) error {
+func (rgw *RGWClient) RGWCreateSubscription(sub, topic, endpoint, amqpExchange, amqpAckLevel string) error {
 	method := "PUT"
 	if len(sub) == 0 || len(topic) == 0 {
 		return fmt.Errorf("subscription and topic cannot be empty")
 	}
-	req_url := rgw.endpoint + "/subscriptions/" + sub + "?topic=" + topic
+
+	v := url.Values{}
+	v.Set("topic", topic)
+
 	if len(endpoint) > 0 {
-		req_url = req_url + "&push-endpoint=" + endpoint
+		endpointURL, err := url.Parse(endpoint)
+		if err != nil {
+			return err
+		}
+
+		if endpointURL.Scheme == "amqp" {
+			if len(amqpExchange) == 0 {
+				return fmt.Errorf("amqpExchange cannot be empty for AMQP endpoints")
+			}
+			v.Set("amqp-exchange", amqpExchange)
+
+			if len(amqpAckLevel) > 0 {
+				v.Set("amqp-ack-level", amqpAckLevel)
+			}
+		}
+		v.Add("push-endpoint", endpoint)
+
 	}
-	_, err := rgw.rgwDoRequestRaw(method, req_url)
+
+	reqURL := rgw.endpoint + "/subscriptions/" + sub + "?" + v.Encode()
+
+	_, err := rgw.rgwDoRequestRaw(method, reqURL)
 	return err
 }
 
