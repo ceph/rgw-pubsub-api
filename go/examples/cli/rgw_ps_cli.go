@@ -44,6 +44,8 @@ var (
 	cleanup      = flag.Bool("cleanup", false, "clean up after run")
 	readonly     = flag.Bool("readonly", false, "read only")
 	pushEndpoint = flag.String("pushendpoint", "", "URL of endpoint to push notifications to")
+	amqpExchange = flag.String("amqp-exchange", "", "Name of the exchange for AMQP push endpoints")
+	amqpAckLevel = flag.String("amqp-ack-level", "", "Ack level for AMQP push endpoints")
 )
 
 func main() {
@@ -82,7 +84,7 @@ func main() {
 	glog.Infof("notifications: %+v", notif)
 	if !*readonly {
 		// create subscription
-		err = rgwClient.RGWCreateSubscription(*subName, *topicName, *pushEndpoint)
+		err = rgwClient.RGWCreateSubscription(*subName, *topicName, *pushEndpoint, *amqpExchange, *amqpAckLevel)
 		if err != nil {
 			glog.Fatalf("failed to create subscription: %v", err)
 		}
