@@ -66,10 +66,11 @@ func (rgw *RGWClient) RGWGetNotifications(bucket string) (*RGWNotifications, err
 	req_url := rgw.endpoint + "/notifications/bucket/" + bucket
 	out, err := rgw.rgwDoRequestRaw(method, req_url)
 	if err != nil {
-		if err = json.Unmarshal(out, &topics); err != nil {
-			glog.Warningf("failed to unmarshal topics from %s: %v", string(out), err)
-			return nil, err
-		}
+		return nil, err
+	}
+	if err = json.Unmarshal(out, &topics); err != nil {
+		glog.Warningf("failed to unmarshal topics from %s: %v", string(out), err)
+		return nil, err
 	}
 	return &topics, nil
 }

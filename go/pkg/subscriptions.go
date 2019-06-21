@@ -116,11 +116,12 @@ func (rgw *RGWClient) RGWGetEvents(sub string, max int, marker string) (*RGWEven
 		req_url = req_url + "&marker=" + marker
 	}
 	out, err := rgw.rgwDoRequestRaw(method, req_url)
-	if err == nil {
-		if err = json.Unmarshal(out, &events); err != nil {
-			glog.Warningf("failed to unmarshal events from %s: %v", string(out), err)
-			return nil, err
-		}
+	if err != nil {
+		return nil, err
+	}
+	if err = json.Unmarshal(out, &events); err != nil {
+		glog.Warningf("failed to unmarshal events from %s: %v", string(out), err)
+		return nil, err
 	}
 	return &events, nil
 }

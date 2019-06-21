@@ -71,10 +71,11 @@ func (rgw *RGWClient) RGWGetSubscriptionWithTopic(topic string) (*RGWSubscriptio
 	req_url := rgw.endpoint + "/topics/" + topic
 	out, err := rgw.rgwDoRequestRaw(method, req_url)
 	if err != nil {
-		if err = json.Unmarshal(out, &sub); err != nil {
-			glog.Warningf("failed to unmarshal sub from %s: %v", string(out), err)
-			return nil, err
-		}
+		return nil, err
+	}
+	if err = json.Unmarshal(out, &sub); err != nil {
+		glog.Warningf("failed to unmarshal sub from %s: %v", string(out), err)
+		return nil, err
 	}
 	return &sub, nil
 }
@@ -86,10 +87,11 @@ func (rgw *RGWClient) RGWGetSubscriptions() (*RGWSubscriptions, error) {
 	req_url := rgw.endpoint + "/topics"
 	out, err := rgw.rgwDoRequestRaw(method, req_url)
 	if err != nil {
-		if err = json.Unmarshal(out, &subs); err != nil {
-			glog.Warningf("failed to unmarshal subs from %s: %v", string(out), err)
-			return nil, err
-		}
+		return nil, err
+	}
+	if err = json.Unmarshal(out, &subs); err != nil {
+		glog.Warningf("failed to unmarshal subs from %s: %v", string(out), err)
+		return nil, err
 	}
 	return &subs, nil
 }
