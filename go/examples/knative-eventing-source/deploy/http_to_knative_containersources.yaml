@@ -19,7 +19,10 @@ spec:
      value: '<rgw secret key>'
    - name: S3_HOSTNAME
      value: '<rgw pubsub URL>'
+  ports:
+   - name: app
+     port: <internal port>
   sink:
-    apiVersion: eventing.knative.dev/v1alpha1
-    kind: Channel
+    apiVersion: messaging.knative.dev/v1alpha1
+    kind: InMemoryChannel
     name: rgw-ps-channel
