@@ -10,6 +10,7 @@ Set the following environment variables for the **build** process:
 - ```S3_ACCESS_KEY_ID``` - access ID for the radosgw
 - ```S3_SECRET_ACCESS_KEY``` - secret key for the radosgw
 - ```S3_HOSTNAME``` - URL for the main radosgw (e.g. "http://my-rgw:8000")
+- ```S3_REGION``` - the zonegroup name
 > Note that the hostname should be accessible from the lambda function. So, don't use something like "localhost" there
 - ```GOOGLE_VISION_API_KEY``` - Google Vision API key
 

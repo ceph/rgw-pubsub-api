@@ -12,6 +12,7 @@ spec:
     - '--username=<user name>'
     - '--zonegroup=<zone group>'
     - '--port=<internal listening port>'
+    - '--sink=http://rgwpubsub-svc.rgwpubsub.svc.cluster.local'
   env:
    - name: S3_ACCESS_KEY_ID
      value: '<rgw access key>'
@@ -19,7 +20,10 @@ spec:
      value: '<rgw secret key>'
    - name: S3_HOSTNAME
      value: '<rgw pubsub URL>'
+  ports:
+   - name: app
+     port: <internal port>
   sink:
-    apiVersion: eventing.knative.dev/v1alpha1
-    kind: Channel
+    apiVersion: messaging.knative.dev/v1alpha1
+    kind: InMemoryChannel
     name: rgw-ps-channel

@@ -100,17 +100,16 @@ func main() {
 	flag.Parse()
 
 	if subName == nil || len(*subName) == 0 {
-		log.Fatalf("No subscription name")
+		log.Printf("No subscription name - events will not be acked")
+	} else {
+		var err error
+		rgwClient, err = rgwpubsub.NewRGWClient(*userName, s3AccessID, s3AccessKey, s3Endpoint, *zonegroup)
+		if err != nil {
+			log.Fatalf("Failed to create rgw pubsub client: %v", err)
+		}
+
+		log.Printf("Events will acked to rgw: %s", s3Endpoint)
 	}
-
-	var err error
-	rgwClient, err = rgwpubsub.NewRGWClient(*userName, s3AccessID, s3AccessKey, s3Endpoint, *zonegroup)
-	if err != nil {
-		log.Fatalf("Failed to create rgw pubsub client: %v", err)
-	}
-
-	log.Printf("Events will acked to rgw: %s", s3Endpoint)
-
 	http.HandleFunc("/", postHandler)
 	log.Fatal(http.ListenAndServe(":"+*listenPort, nil))
 }

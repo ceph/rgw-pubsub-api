@@ -18,6 +18,7 @@ const (
 	envS3AccessID         = "S3_ACCESS_KEY_ID"
 	envS3AccessKey        = "S3_SECRET_ACCESS_KEY"
 	envS3Endpoint         = "S3_HOSTNAME"
+	envS3Region           = "S3_REGION"
 	envGoogleVisionAPIKey = "GOOGLE_VISION_API_KEY"
 )
 
@@ -26,7 +27,7 @@ var (
 	s3AccessKey        string
 	s3Endpoint         string
 	googleVisionAPIKey string
-	region             = "default"
+	s3Region           = ""
 	maxLabels          = 5
 )
 
@@ -42,12 +43,13 @@ func HandleLambdaEvent(event rgwpubsub.RGWEvent) (MyResponse, error) {
 	log.Print("handle event:")
 	log.Print(event)
 
-	rgwDownloader, err := rgwdownloader.NewRGWDownload(s3AccessID, s3AccessKey, s3Endpoint, region)
+	rgwDownloader, err := rgwdownloader.NewRGWDownload(s3AccessID, s3AccessKey, s3Endpoint, s3Region)
 	if err != nil {
 		message := fmt.Sprintf("failed to create downloader: %q", err.Error())
 		log.Print(message)
 		return MyResponse{}, fmt.Errorf(message)
 	}
+	log.Print(fmt.Sprintf("successfully created downloader from: %q", s3Endpoint))
 
 	reader, err := rgwDownloader.Download(bucket, key)
 	if err != nil {
@@ -55,6 +57,7 @@ func HandleLambdaEvent(event rgwpubsub.RGWEvent) (MyResponse, error) {
 		log.Printf(message)
 		return MyResponse{}, fmt.Errorf(message)
 	}
+	log.Print(fmt.Sprintf("successfully downloaded object: %q/%q", bucket, key))
 
 	if annotations := googlevision.AnnotateImage(googleVisionAPIKey, maxLabels, reader); len(annotations) > 0 {
 		// return highest score descriptions
@@ -75,10 +78,11 @@ func main() {
 	s3AccessID = os.Getenv(envS3AccessID)
 	s3AccessKey = os.Getenv(envS3AccessKey)
 	s3Endpoint = os.Getenv(envS3Endpoint)
+	s3Region = os.Getenv(envS3Region)
 	googleVisionAPIKey = os.Getenv(envGoogleVisionAPIKey)
 
-	if len(s3AccessID) == 0 || len(s3AccessKey) == 0 || len(s3Endpoint) == 0 || len(googleVisionAPIKey) == 0 {
-		log.Fatalf("env %s, %s, %s or %s not set", envS3AccessID, envS3AccessKey, envS3Endpoint, envGoogleVisionAPIKey)
+	if len(s3AccessID) == 0 || len(s3AccessKey) == 0 || len(s3Endpoint) == 0 || len(s3Region) == 0 || len(googleVisionAPIKey) == 0 {
+		log.Fatalf("env %s, %s, %s, %s or %s not set", envS3AccessID, envS3AccessKey, envS3Endpoint, envS3Region, envGoogleVisionAPIKey)
 	}
 	lambda.Start(HandleLambdaEvent)
 }
