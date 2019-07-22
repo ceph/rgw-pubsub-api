@@ -12,6 +12,7 @@ spec:
     - '--username=<user name>'
     - '--zonegroup=<zone group>'
     - '--port=<internal listening port>'
+    - '--sink=http://rgwpubsub-svc.rgwpubsub.svc.cluster.local'
   env:
    - name: S3_ACCESS_KEY_ID
      value: '<rgw access key>'
