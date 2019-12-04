@@ -72,33 +72,34 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	accessID := os.Getenv(envAccessID)
-	accessKey := os.Getenv(envAccessKey)
-	endpoint := os.Getenv(envEndpoint)
-
-	if len(accessID) == 0 || len(accessKey) == 0 || len(endpoint) == 0 {
-		log.Fatalf("env %s, %s, or %s not set", envAccessID, envAccessKey, envEndpoint)
-	}
-
 	flag.Parse()
-
-	if subName == nil || len(*subName) == 0 {
-		log.Fatalf("No subscription name")
-	}
 
 	if target == nil || *target == "" {
 		log.Fatalf("No sink target")
 	}
 
-	var err error
-	rgwClient, err = rgwpubsub.NewRGWClient(*userName, accessID, accessKey, endpoint, *zonegroup)
-	if err != nil {
-		log.Fatalf("Failed to create rgw pubsub client: %v", err)
+	if subName != nil && len(*subName) > 0 {
+		if userName == nil || len(*userName) == 0 || zonegroup == nil || len(*zonegroup) == 0 {
+			log.Fatalf("Subscription information exist, but user/zonegroup are missing")
+		}
+		accessID := os.Getenv(envAccessID)
+		accessKey := os.Getenv(envAccessKey)
+		endpoint := os.Getenv(envEndpoint)
+		if len(accessID) == 0 || len(accessKey) == 0 || len(endpoint) == 0 {
+			log.Fatalf("Subscription information exist, but env %s, %s, or %s not set", envAccessID, envAccessKey, envEndpoint)
+		}
+		var err error
+		rgwClient, err = rgwpubsub.NewRGWClient(*userName, accessID, accessKey, endpoint, *zonegroup)
+		if err != nil {
+			log.Fatalf("Failed to create rgw pubsub client: %v", err)
+		}
+		log.Printf("Events will acked to rgw: %q", endpoint)
+	} else {
+		log.Println("No subscription is configured, no events will be acked")
 	}
 
 	log.Printf("Listening on port: %q", *listenPort)
-	log.Printf("Target is: %q", *target)
-	log.Printf("Events will acked to rgw: %q", endpoint)
+	log.Printf("Sink is: %q", *target)
 
 	http.HandleFunc("/", postHandler)
 	log.Fatal(http.ListenAndServe(":"+*listenPort, nil))
